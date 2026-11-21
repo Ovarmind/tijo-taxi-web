@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NYC Taxi Prediction</title>
+
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+
+    <style>
+        .leaflet-pane,
+        .leaflet-tile,
+        .leaflet-marker-icon,
+        .leaflet-marker-shadow,
+        .leaflet-tile-container,
+        .leaflet-pane > svg,
+        .leaflet-pane > canvas,
+        .leaflet-zoom-box,
+        .leaflet-image-layer,
+        .leaflet-layer {
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+
+        .leaflet-container {
+            overflow: hidden;
+            position: relative;
+            background: #ddd;
+            outline-offset: 1px;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .leaflet-tile,
+        .leaflet-marker-icon,
+        .leaflet-marker-shadow {
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        .leaflet-tile::selection {
+            background: transparent;
+        }
+
+        .leaflet-safari .leaflet-tile {
+            image-rendering: -webkit-optimize-contrast;
+        }
+
+        .leaflet-tile {
+            filter: inherit;
+            visibility: hidden;
+        }
+
+        .leaflet-tile-loaded {
+            visibility: inherit;
+        }
+
+        .leaflet-zoom-box {
+            width: 0;
+            height: 0;
+            box-sizing: border-box;
+            z-index: 800;
+        }
+
+        .leaflet-overlay-pane svg {
+            user-select: none;
+        }
+
+        .leaflet-pane {
+            z-index: 400;
+        }
+
+        .leaflet-tile-pane {
+            z-index: 200;
+        }
+
+        .leaflet-overlay-pane {
+            z-index: 400;
+        }
+
+        .leaflet-shadow-pane {
+            z-index: 500;
+        }
+
+        .leaflet-marker-pane {
+            z-index: 600;
+        }
+
+        .leaflet-tooltip-pane {
+            z-index: 650;
+        }
+
+        .leaflet-popup-pane {
+            z-index: 700;
+        }
+
+        .leaflet-map-pane canvas {
+            z-index: 100;
+        }
+
+        .leaflet-map-pane svg {
+            z-index: 200;
+        }
+
+        .leaflet-control {
+            position: relative;
+            z-index: 800;
+            pointer-events: auto;
+            float: left;
+            clear: both;
+        }
+
+        .leaflet-top,
+        .leaflet-bottom {
+            position: absolute;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .leaflet-top {
+            top: 0;
+        }
+
+        .leaflet-right {
+            right: 0;
+        }
+
+        .leaflet-bottom {
+            bottom: 0;
+        }
+
+        .leaflet-left {
+            left: 0;
+        }
+
+        .leaflet-control {
+            pointer-events: auto;
+        }
+
+        .leaflet-left .leaflet-control {
+            margin-left: 10px;
+        }
+
+        .leaflet-top .leaflet-control {
+            margin-top: 10px;
+        }
+
+        .leaflet-right .leaflet-control {
+            margin-right: 10px;
+        }
+
+        .leaflet-bottom .leaflet-control {
+            margin-bottom: 10px;
+        }
+
+        .leaflet-control-zoom {
+            border: 2px solid rgba(0, 0, 0, 0.2);
+            background: #fff;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .leaflet-control-zoom a {
+            display: block;
+            width: 30px;
+            height: 30px;
+            line-height: 30px;
+            text-align: center;
+            text-decoration: none;
+            color: #111827;
+            background: #fff;
+            font-size: 20px;
+            font-weight: bold;
+            border-bottom: 1px solid #ccc;
+        }
+
+        .leaflet-control-zoom a:last-child {
+            border-bottom: none;
+        }
+
+        .leaflet-control-zoom a:hover {
+            background: #f3f4f6;
+        }
+
+        .leaflet-control-attribution {
+            background: rgba(255, 255, 255, 0.85);
+            padding: 2px 6px;
+            color: #111827;
+            font-size: 11px;
+        }
+
+        .leaflet-control-attribution a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+
+        .leaflet-popup {
+            position: absolute;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .leaflet-popup-content-wrapper {
+            padding: 1px;
+            text-align: left;
+            border-radius: 12px;
+        }
+
+        .leaflet-popup-content {
+            margin: 13px 19px;
+            line-height: 1.4;
+            min-width: 80px;
+        }
+
+        .leaflet-popup-tip-container {
+            width: 40px;
+            height: 20px;
+            position: absolute;
+            left: 50%;
+            margin-left: -20px;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .leaflet-popup-tip {
+            width: 17px;
+            height: 17px;
+            padding: 1px;
+            margin: -10px auto 0;
+            transform: rotate(45deg);
+        }
+
+        .leaflet-popup-content-wrapper,
+        .leaflet-popup-tip {
+            background: #111827;
+            color: #f9fafb;
+            box-shadow: 0 3px 14px rgba(0, 0, 0, 0.4);
+        }
+
+        .leaflet-popup-close-button {
+            position: absolute;
+            top: 0;
+            right: 0;
+            padding: 4px 4px 0 0;
+            border: none;
+            text-align: center;
+            width: 24px;
+            height: 24px;
+            font: 16px/24px Tahoma, Verdana, sans-serif;
+            color: #d1d5db;
+            text-decoration: none;
+            background: transparent;
+        }
+
+        .leaflet-popup-close-button:hover {
+            color: #fff;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #0b1120;
+            color: #f9fafb;
+        }
+
+        .page {
+            min-height: 100vh;
+            padding: 28px;
+        }
+
+        .card {
+            width: 100%;
+            max-width: 1540px;
+            margin: 0 auto;
+            background: #1f2937;
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+        }
+
+        h1 {
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-size: 30px;
+        }
+
+        .subtitle {
+            margin-top: 0;
+            margin-bottom: 24px;
+            color: #d1d5db;
+            line-height: 1.5;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(760px, 1.7fr) minmax(360px, 0.8fr);
+            gap: 22px;
+            align-items: start;
+        }
+
+        .map-panel,
+        .form-panel {
+            background: #111827;
+            border: 1px solid #374151;
+            border-radius: 14px;
+            padding: 16px;
+        }
+
+        .map-header {
+            display: flex;
+            gap: 12px;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .map-header h2,
+        .form-panel h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .mode-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .mode-button,
+        .small-button {
+            width: auto;
+            margin-top: 0;
+            padding: 10px 12px;
+            border: 1px solid #4b5563;
+            border-radius: 10px;
+            background: #1f2937;
+            color: #f9fafb;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .mode-button:hover,
+        .small-button:hover {
+            background: #374151;
+        }
+
+        .mode-button.active {
+            background: #8b5cf6;
+            border-color: #8b5cf6;
+        }
+
+        .small-button.danger {
+            border-color: #ef4444;
+            color: #fecaca;
+        }
+
+        #map {
+            width: 100%;
+            height: 650px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #374151;
+            background: #dbeafe;
+        }
+
+        .map-help {
+            margin-top: 12px;
+            padding: 12px;
+            background: #1f2937;
+            border-radius: 12px;
+            color: #d1d5db;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+
+        .selected-points {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 14px;
+        }
+
+        .point-card {
+            padding: 12px;
+            border-radius: 12px;
+            background: #1f2937;
+            border: 1px solid #374151;
+            line-height: 1.45;
+        }
+
+        .point-card strong {
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .point-card.empty {
+            color: #9ca3af;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #374151;
+            background: #111827;
+            color: #f9fafb;
+            font-size: 15px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25);
+        }
+
+        input[readonly] {
+            color: #d1d5db;
+            background: #0b1220;
+            cursor: default;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 8px;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            background: #8b5cf6;
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #7c3aed;
+        }
+
+        button:disabled {
+            background: #4b5563;
+            cursor: not-allowed;
+        }
+
+        .status {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 12px;
+            background: #1f2937;
+            border: 1px solid #374151;
+            color: #d1d5db;
+            line-height: 1.5;
+        }
+
+        .result {
+            margin-top: 22px;
+            padding: 16px;
+            border-radius: 12px;
+            background: #111827;
+            border: 1px solid #374151;
+            display: none;
+            line-height: 1.6;
+        }
+
+        .result.success {
+            border-color: #10b981;
+        }
+
+        .result.error {
+            border-color: #ef4444;
+        }
+
+        .result-title {
+            font-weight: 700;
+            margin-bottom: 8px;
+            font-size: 18px;
+        }
+
+        ul {
+            margin-top: 8px;
+            margin-bottom: 0;
+            padding-left: 20px;
+        }
+
+        @media (max-width: 1180px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            #map {
+                height: 560px;
+            }
+        }
+
+        @media (max-width: 700px) {
+            .page {
+                padding: 12px;
+            }
+
+            .card {
+                padding: 18px;
+            }
+
+            .grid,
+            .selected-points {
+                grid-template-columns: 1fr;
+            }
+
+            .map-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            #map {
+                height: 420px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="page">
+    <div class="card">
+        <h1>NYC Taxi Prediction</h1>
+
+        <p class="subtitle">
+            Kliknij na mapie Nowego Jorku, aby wybrać punkt startowy i docelowy.
+            Aplikacja automatycznie pobierze współrzędne i wyśle je do endpointu
+            <strong>/predict</strong>.
+        </p>
+
+        <div class="layout">
+            <section class="map-panel">
+                <div class="map-header">
+                    <h2>Mapa wyboru trasy</h2>
+
+                    <div class="mode-buttons">
+                        <button id="pickupModeButton" class="mode-button active" type="button">
+                            Ustaw start
+                        </button>
+
+                        <button id="dropoffModeButton" class="mode-button" type="button">
+                            Ustaw cel
+                        </button>
+
+                        <button id="swapPointsButton" class="small-button" type="button">
+                            Zamień
+                        </button>
+
+                        <button id="clearPointsButton" class="small-button danger" type="button">
+                            Wyczyść
+                        </button>
+                    </div>
+                </div>
+
+                <div id="map"></div>
+
+                <div class="map-help" id="mapHelp">
+                    Aktualny tryb: <strong>ustawianie punktu startowego</strong>.
+                    Kliknij na mapie, żeby dodać marker. Markery można przeciągać.
+                </div>
+
+                <div class="selected-points">
+                    <div id="pickupPointCard" class="point-card empty">
+                        <strong>Start</strong>
+                        Nie wybrano punktu startowego.
+                    </div>
+
+                    <div id="dropoffPointCard" class="point-card empty">
+                        <strong>Cel</strong>
+                        Nie wybrano punktu docelowego.
+                    </div>
+                </div>
+            </section>
+
+            <section class="form-panel">
+                <h2>Parametry predykcji</h2>
+
+                <form id="predictionForm">
+                    <div class="grid">
+                        <div class="form-group">
+                            <label for="pickupLat">Pickup latitude</label>
+                            <input id="pickupLat" type="text" readonly required />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="pickupLng">Pickup longitude</label>
+                            <input id="pickupLng" type="text" readonly required />
+                        </div>
+                    </div>
+
+                    <div class="grid">
+                        <div class="form-group">
+                            <label for="dropoffLat">Dropoff latitude</label>
+                            <input id="dropoffLat" type="text" readonly required />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="dropoffLng">Dropoff longitude</label>
+                            <input id="dropoffLng" type="text" readonly required />
+                        </div>
+                    </div>
+
+                    <div class="grid">
+                        <div class="form-group">
+                            <label for="weekday">weekday_1_7</label>
+                            <input id="weekday" type="number" min="1" max="7" value="2" required />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="hour">hour_0_23</label>
+                            <input id="hour" type="number" min="0" max="23" value="14" required />
+                        </div>
+                    </div>
+
+                    <button id="submitButton" type="submit" disabled>
+                        Najpierw wybierz start i cel na mapie
+                    </button>
+                </form>
+
+                <div id="statusBox" class="status">
+                    Wybierz dwa punkty na mapie. Pierwszy marker to start, drugi marker to cel.
+                </div>
+            </section>
+        </div>
+
+        <div id="result" class="result"></div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    const form = document.getElementById("predictionForm");
+    const resultBox = document.getElementById("result");
+    const statusBox = document.getElementById("statusBox");
+    const submitButton = document.getElementById("submitButton");
+
+    const pickupModeButton = document.getElementById("pickupModeButton");
+    const dropoffModeButton = document.getElementById("dropoffModeButton");
+    const swapPointsButton = document.getElementById("swapPointsButton");
+    const clearPointsButton = document.getElementById("clearPointsButton");
+    const mapHelp = document.getElementById("mapHelp");
+
+    const pickupPointCard = document.getElementById("pickupPointCard");
+    const dropoffPointCard = document.getElementById("dropoffPointCard");
+
+    const pickupLatInput = document.getElementById("pickupLat");
+    const pickupLngInput = document.getElementById("pickupLng");
+    const dropoffLatInput = document.getElementById("dropoffLat");
+    const dropoffLngInput = document.getElementById("dropoffLng");
+
+    let activePointType = "pickup";
+    let pickupPoint = null;
+    let dropoffPoint = null;
+    let pickupMarker = null;
+    let dropoffMarker = null;
+
+    function setStatus(message) {
+        statusBox.innerHTML = message;
+    }
+
+    function roundCoordinate(value) {
+        return Number(value).toFixed(6);
+    }
+
+    function showResult(type, html) {
+        resultBox.className = `result ${type}`;
+        resultBox.innerHTML = html;
+        resultBox.style.display = "block";
+    }
+
+    function clearResult() {
+        resultBox.style.display = "none";
+        resultBox.innerHTML = "";
+    }
+
+    function updateModeButtons() {
+        pickupModeButton.classList.toggle("active", activePointType === "pickup");
+        dropoffModeButton.classList.toggle("active", activePointType === "dropoff");
+
+        const modeText = activePointType === "pickup"
+            ? "ustawianie punktu startowego"
+            : "ustawianie punktu docelowego";
+
+        mapHelp.innerHTML = `
+            Aktualny tryb: <strong>${modeText}</strong>.
+            Kliknij na mapie, żeby dodać lub przenieść marker. Markery można też przeciągać.
+        `;
+    }
+
+    function updateInputs() {
+        pickupLatInput.value = pickupPoint ? roundCoordinate(pickupPoint.lat) : "";
+        pickupLngInput.value = pickupPoint ? roundCoordinate(pickupPoint.lng) : "";
+        dropoffLatInput.value = dropoffPoint ? roundCoordinate(dropoffPoint.lat) : "";
+        dropoffLngInput.value = dropoffPoint ? roundCoordinate(dropoffPoint.lng) : "";
+    }
+
+    function updatePointCards() {
+        if (pickupPoint) {
+            pickupPointCard.className = "point-card";
+            pickupPointCard.innerHTML = `
+                <strong>Start</strong>
+                Lat: ${roundCoordinate(pickupPoint.lat)}<br />
+                Lng: ${roundCoordinate(pickupPoint.lng)}
+            `;
+        } else {
+            pickupPointCard.className = "point-card empty";
+            pickupPointCard.innerHTML = `
+                <strong>Start</strong>
+                Nie wybrano punktu startowego.
+            `;
+        }
+
+        if (dropoffPoint) {
+            dropoffPointCard.className = "point-card";
+            dropoffPointCard.innerHTML = `
+                <strong>Cel</strong>
+                Lat: ${roundCoordinate(dropoffPoint.lat)}<br />
+                Lng: ${roundCoordinate(dropoffPoint.lng)}
+            `;
+        } else {
+            dropoffPointCard.className = "point-card empty";
+            dropoffPointCard.innerHTML = `
+                <strong>Cel</strong>
+                Nie wybrano punktu docelowego.
+            `;
+        }
+    }
+
+    function updateSubmitState() {
+        const hasBothPoints = Boolean(pickupPoint && dropoffPoint);
+
+        submitButton.disabled = !hasBothPoints;
+        submitButton.textContent = hasBothPoints
+            ? "Oblicz predykcję"
+            : "Najpierw wybierz start i cel na mapie";
+
+        if (!pickupPoint && !dropoffPoint) {
+            setStatus("Wybierz dwa punkty na mapie. Pierwszy marker to start, drugi marker to cel.");
+        } else if (!pickupPoint) {
+            setStatus("Brakuje punktu startowego. Kliknij <strong>Ustaw start</strong> i wybierz miejsce na mapie.");
+        } else if (!dropoffPoint) {
+            setStatus("Brakuje punktu docelowego. Kliknij <strong>Ustaw cel</strong> i wybierz miejsce na mapie.");
+        } else {
+            setStatus("Punkty są wybrane. Możesz uruchomić predykcję albo przeciągnąć markery, żeby doprecyzować trasę.");
+        }
+    }
+
+    function refreshUiState() {
+        updateInputs();
+        updatePointCards();
+        updateSubmitState();
+        updateModeButtons();
+    }
+
+    if (typeof L === "undefined") {
+        setStatus(
+            "Nie udało się załadować biblioteki Leaflet. Sprawdź połączenie z internetem albo blokowanie CDN przez przeglądarkę."
+        );
+        throw new Error("Leaflet is not loaded.");
+    }
+
+    const newYorkBounds = L.latLngBounds(
+        [40.4500, -74.3500],
+        [41.0200, -73.6000]
+    );
+
+    const pickupIcon = L.divIcon({
+        className: "",
+        html: `
+            <div style="
+                width: 34px;
+                height: 34px;
+                border-radius: 50%;
+                background: #10b981;
+                color: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 800;
+                border: 3px solid white;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.45);
+            ">S</div>
+        `,
+        iconSize: [34, 34],
+        iconAnchor: [17, 17],
+        popupAnchor: [0, -18]
+    });
+
+    const dropoffIcon = L.divIcon({
+        className: "",
+        html: `
+            <div style="
+                width: 34px;
+                height: 34px;
+                border-radius: 50%;
+                background: #ef4444;
+                color: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 800;
+                border: 3px solid white;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.45);
+            ">C</div>
+        `,
+        iconSize: [34, 34],
+        iconAnchor: [17, 17],
+        popupAnchor: [0, -18]
+    });
+
+    const map = L.map("map", {
+        maxBounds: newYorkBounds,
+        maxBoundsViscosity: 0.8,
+        minZoom: 10,
+        zoomControl: true,
+        scrollWheelZoom: true
+    });
+
+    map.fitBounds([
+        [40.5200, -74.1200],
+        [40.8800, -73.7300]
+    ]);
+
+    const tileLayer = L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+            maxZoom: 19,
+            attribution:
+                '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }
+    );
+
+    tileLayer.addTo(map);
+
+    tileLayer.on("tileerror", () => {
+        setStatus(
+            "Część kafelków mapy nie została wczytana. Sprawdź internet, firewall, adblock albo blokowanie zewnętrznych zasobów."
+        );
+    });
+
+    function forceMapResize() {
+        setTimeout(() => map.invalidateSize(true), 100);
+        setTimeout(() => map.invalidateSize(true), 300);
+        setTimeout(() => map.invalidateSize(true), 700);
+        setTimeout(() => map.invalidateSize(true), 1200);
+    }
+
+    map.whenReady(() => {
+        forceMapResize();
+    });
+
+    window.addEventListener("load", forceMapResize);
+    window.addEventListener("resize", forceMapResize);
+
+    function createOrMoveMarker(type, latlng) {
+        const point = {
+            lat: latlng.lat,
+            lng: latlng.lng
+        };
+
+        if (type === "pickup") {
+            pickupPoint = point;
+
+            if (!pickupMarker) {
+                pickupMarker = L.marker(latlng, {
+                    icon: pickupIcon,
+                    draggable: true
+                }).addTo(map);
+
+                pickupMarker.bindPopup("Punkt startowy");
+
+                pickupMarker.on("dragend", (event) => {
+                    pickupPoint = event.target.getLatLng();
+                    clearResult();
+                    refreshUiState();
+                });
+            } else {
+                pickupMarker.setLatLng(latlng);
+            }
+
+            pickupMarker.openPopup();
+
+            if (!dropoffPoint) {
+                activePointType = "dropoff";
+            }
+        } else {
+            dropoffPoint = point;
+
+            if (!dropoffMarker) {
+                dropoffMarker = L.marker(latlng, {
+                    icon: dropoffIcon,
+                    draggable: true
+                }).addTo(map);
+
+                dropoffMarker.bindPopup("Punkt docelowy");
+
+                dropoffMarker.on("dragend", (event) => {
+                    dropoffPoint = event.target.getLatLng();
+                    clearResult();
+                    refreshUiState();
+                });
+            } else {
+                dropoffMarker.setLatLng(latlng);
+            }
+
+            dropoffMarker.openPopup();
+
+            if (!pickupPoint) {
+                activePointType = "pickup";
+            }
+        }
+
+        clearResult();
+        refreshUiState();
+    }
+
+    function clearPoints() {
+        pickupPoint = null;
+        dropoffPoint = null;
+
+        if (pickupMarker) {
+            map.removeLayer(pickupMarker);
+            pickupMarker = null;
+        }
+
+        if (dropoffMarker) {
+            map.removeLayer(dropoffMarker);
+            dropoffMarker = null;
+        }
+
+        activePointType = "pickup";
+
+        clearResult();
+        refreshUiState();
+    }
+
+    function swapPoints() {
+        if (!pickupPoint || !dropoffPoint) {
+            setStatus("Żeby zamienić punkty, najpierw wybierz start i cel.");
+            return;
+        }
+
+        const oldPickupPoint = pickupPoint;
+
+        pickupPoint = dropoffPoint;
+        dropoffPoint = oldPickupPoint;
+
+        if (pickupMarker && dropoffMarker) {
+            pickupMarker.setLatLng(pickupPoint);
+            dropoffMarker.setLatLng(dropoffPoint);
+        }
+
+        clearResult();
+        refreshUiState();
+    }
+
+    function formatStreetNames(streetNames) {
+        if (!streetNames || streetNames.length === 0) {
+            return "<div>Brak nazw ulic w odpowiedzi routingu.</div>";
+        }
+
+        const items = streetNames
+            .slice(0, 20)
+            .map((street) => `<li>${street}</li>`)
+            .join("");
+
+        return `<ul>${items}</ul>`;
+    }
+
+    map.on("click", (event) => {
+        createOrMoveMarker(activePointType, event.latlng);
+    });
+
+    pickupModeButton.addEventListener("click", () => {
+        activePointType = "pickup";
+        updateModeButtons();
+    });
+
+    dropoffModeButton.addEventListener("click", () => {
+        activePointType = "dropoff";
+        updateModeButtons();
+    });
+
+    clearPointsButton.addEventListener("click", clearPoints);
+    swapPointsButton.addEventListener("click", swapPoints);
+
+    function getApiErrorMessage(data) {
+    if (!data || data.detail === undefined) {
+        return "Błąd predykcji.";
+    }
+
+    if (typeof data.detail === "string") {
+        return data.detail;
+    }
+
+    if (Array.isArray(data.detail)) {
+        return data.detail
+            .map((error) => {
+                if (typeof error.msg === "string") {
+                    return error.msg.replace("Value error, ", "");
+                }
+
+                return JSON.stringify(error);
+            })
+            .join("<br>");
+    }
+
+    return JSON.stringify(data.detail);
+}
+
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        if (!pickupPoint || !dropoffPoint) {
+            showResult(
+                "error",
+                `
+                    <div class="result-title">Brakuje punktów</div>
+                    <div>Najpierw wybierz punkt startowy i punkt docelowy na mapie.</div>
+                `
+            );
+            return;
+        }
+
+        const weekday = Number(document.getElementById("weekday").value);
+        const hour = Number(document.getElementById("hour").value);
+
+        if (weekday < 1 || weekday > 7) {
+            showResult(
+                "error",
+                `
+                    <div class="result-title">Nieprawidłowy dzień tygodnia</div>
+                    <div>Wartość weekday_1_7 musi być z zakresu od 1 do 7.</div>
+                `
+            );
+            return;
+        }
+
+        if (hour < 0 || hour > 23) {
+            showResult(
+                "error",
+                `
+                    <div class="result-title">Nieprawidłowa godzina</div>
+                    <div>Wartość hour_0_23 musi być z zakresu od 0 do 23.</div>
+                `
+            );
+            return;
+        }
+
+        const payload = {
+            pickup: {
+                latitude: Number(roundCoordinate(pickupPoint.lat)),
+                longitude: Number(roundCoordinate(pickupPoint.lng))
+            },
+            dropoff: {
+                latitude: Number(roundCoordinate(dropoffPoint.lat)),
+                longitude: Number(roundCoordinate(dropoffPoint.lng))
+            },
+            weekday_1_7: weekday,
+            hour_0_23: hour
+        };
+
+        submitButton.disabled = true;
+        submitButton.textContent = "Liczenie trasy i predykcji...";
+
+        setStatus(
+            "Trwa obliczanie trasy i predykcji. Backend korzysta z mapowania stref, routingu oraz modelu Ridge."
+        );
+
+        try {
+            const response = await fetch("/predict", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(getApiErrorMessage(data));
+            }
+
+            showResult(
+                "success",
+                `
+                    <div class="result-title">Wynik predykcji</div>
+
+                    <div>
+                        Przewidywany czas przejazdu:
+                        <strong>${data.predicted_travel_time_min} min</strong>
+                    </div>
+
+                    <div>
+                        Pickup zone ID:
+                        <strong>${data.pickup_location_id}</strong>
+                    </div>
+
+                    <div>
+                        Dropoff zone ID:
+                        <strong>${data.dropoff_location_id}</strong>
+                    </div>
+
+                    <div>
+                        Dystans trasy:
+                        <strong>${Math.round(data.routing_distance_m)} m</strong>
+                    </div>
+
+                    <div style="margin-top: 12px;">
+                        <strong>Wysłane współrzędne:</strong>
+                    </div>
+
+                    <div>
+                        Start:
+                        ${payload.pickup.latitude}, ${payload.pickup.longitude}
+                    </div>
+
+                    <div>
+                        Cel:
+                        ${payload.dropoff.latitude}, ${payload.dropoff.longitude}
+                    </div>
+
+                    <div style="margin-top: 12px;">
+                        <strong>Nazwy ulic na trasie:</strong>
+                    </div>
+
+                    ${formatStreetNames(data.route_street_names)}
+                `
+            );
+
+            setStatus(
+                "Predykcja została wykonana. Możesz przesunąć markery i uruchomić ją ponownie."
+            );
+        } catch (error) {
+            showResult(
+                "error",
+                `
+                    <div class="result-title">Błąd</div>
+                    <div>${error.message}</div>
+                `
+            );
+
+            setStatus(
+                "Nie udało się wykonać predykcji. Sprawdź, czy backend działa oraz czy wybrane punkty znajdują się w obsługiwanych strefach NYC Taxi."
+            );
+        } finally {
+            refreshUiState();
+        }
+    });
+
+    refreshUiState();
+    forceMapResize();
+</script>
+</body>
+</html>

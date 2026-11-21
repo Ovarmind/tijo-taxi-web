@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.py[cod]
+.env
+.coverage
+htmlcov/
+data/raw/
+data/interim/
+# Plik data/processed/NYC_Taxi_Zones.parquet ma być dodany świadomie po skopiowaniu.
